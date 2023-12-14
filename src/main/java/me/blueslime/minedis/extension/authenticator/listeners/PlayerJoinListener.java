@@ -2,6 +2,7 @@ package me.blueslime.minedis.extension.authenticator.listeners;
 
 import me.blueslime.minedis.extension.authenticator.MStaffAuthenticator;
 import me.blueslime.minedis.extension.authenticator.cache.CodeCache;
+import me.blueslime.minedis.extension.authenticator.cache.DiscordCache;
 import me.blueslime.minedis.extension.authenticator.utils.CodeGenerator;
 import me.blueslime.minedis.extension.authenticator.utils.EmbedSection;
 import me.blueslime.minedis.utils.player.PlayerTools;
@@ -13,11 +14,18 @@ import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.connection.ProxiedPlayer;
 import net.md_5.bungee.api.event.PostLoginEvent;
 import net.md_5.bungee.api.plugin.Listener;
+import net.md_5.bungee.api.scheduler.ScheduledTask;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.event.EventHandler;
 import net.md_5.bungee.event.EventPriority;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
 public class PlayerJoinListener implements Listener {
+    private final Map<UUID, ScheduledTask> taskMap = new HashMap<>();
     private final MStaffAuthenticator extension;
 
     public PlayerJoinListener(MStaffAuthenticator extension) {
@@ -130,13 +138,65 @@ public class PlayerJoinListener implements Listener {
                 }
             } else {
                 if (settings.getBoolean("settings.auth.prevent-join-without-linked-account", true)) {
-                    player.disconnect(
-                        TextUtilities.component(
-                            settings.getString(
-                                "settings.auth.not-registered", "&cYour discord account is not registered in database"
-                            )
-                        )
+                    String code = CodeGenerator.generate(
+                            10
                     );
+
+                    extension.getCache(CodeCache.class).set(
+                            player.getUniqueId(),
+                            code
+                    );
+
+                    taskMap.put(player.getUniqueId(), extension.getProxy().getScheduler().schedule(
+                            extension.getPlugin(),
+                            new Runnable() {
+
+                                int seconds = settings.getInt("settings.auth.prevent-join-without-linked-account-timer", 30);
+
+                                @Override
+                                public void run() {
+                                    if (!player.isConnected()) {
+                                        cancel(player.getUniqueId());
+                                        return;
+                                    }
+                                    if (extension.getCache(CodeCache.class).contains(player.getUniqueId())) {
+                                        String code = extension.getCache(CodeCache.class).get(player.getUniqueId());
+                                        if (extension.getCache(DiscordCache.class).contains(code)) {
+                                            player.sendMessage(
+                                                    ChatMessageType.ACTION_BAR,
+                                                    TextUtilities.component(
+                                                            "&aWaiting code"
+                                                    )
+                                            );
+                                            cancel(player.getUniqueId());
+                                        }
+                                        return;
+                                    }
+                                    player.sendMessage(
+                                            ChatMessageType.ACTION_BAR,
+                                            TextUtilities.component(
+                                                    "&6" + seconds
+                                            )
+                                    );
+                                    seconds--;
+                                    if (seconds <= 0) {
+                                        player.disconnect(
+                                            TextUtilities.component(
+                                                settings.getString(
+                                                    "settings.auth.not-registered", "&cYour discord account is not registered in database"
+                                                )
+                                            )
+                                        );
+                                        cancel(player.getUniqueId());
+                                    }
+                                }
+                            },
+                            0,
+                            1,
+                            TimeUnit.SECONDS
+                    ));
+
+
                     return;
                 }
             }
@@ -178,6 +238,13 @@ public class PlayerJoinListener implements Listener {
                     ).queue();
                 }
             }
+        }
+    }
+
+    public void cancel(UUID uuid) {
+        ScheduledTask task = taskMap.get(uuid);
+        if (task != null) {
+            task.cancel();
         }
     }
 }

@@ -42,6 +42,10 @@ public final class MStaffAuthenticator extends MinedisExtension {
         registerCache(codes);
         registerCache(discordCache);
 
+        if (!getConfiguration().contains("settings.auth.prevent-join-without-linked-account-timer")) {
+            getConfiguration().set("settings.auth.prevent-join-without-linked-account-timer", 30);
+        }
+
         if (!getConfiguration().contains("settings.auth")) {
             getConfiguration().set("settings.auth.prevent-join-without-linked-account", true);
             getConfiguration().set("settings.auth.address-not-found", "Not yet");

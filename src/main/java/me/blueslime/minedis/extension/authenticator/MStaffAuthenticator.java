@@ -17,8 +17,10 @@ import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 public final class MStaffAuthenticator extends MinedisExtension {
+    private final ArrayList<String> commandList = new ArrayList<>();
     private final DiscordCache discordCache = new DiscordCache();
     private final CodeCache codes = new CodeCache();
 
@@ -132,13 +134,13 @@ public final class MStaffAuthenticator extends MinedisExtension {
         reloadDatabase();
 
         registerMinecraftListeners(
-            new PlayerJoinListener(this),
-            new PlayerQuitListener(this),
-            new PlayerChatListener(this)
+                new PlayerJoinListener(this),
+                new PlayerQuitListener(this),
+                new PlayerChatListener(this)
         );
 
         registerEventListeners(
-            new DiscordCommandListener(this)
+                new DiscordCommandListener(this)
         );
 
         saveConfiguration();
@@ -167,7 +169,7 @@ public final class MStaffAuthenticator extends MinedisExtension {
                 "Nick of your user",
                 true
             )
-        ).queue();
+        ).queue(cmd -> commandList.add(cmd.getId()));
     }
 
     public void saveDatabase() {
@@ -179,8 +181,6 @@ public final class MStaffAuthenticator extends MinedisExtension {
             if (load) {
                 File file1 = new File(folder, "minecraft-storage.yml");
                 File file2 = new File(folder, "discord-storage.yml");
-
-                File file = new File(folder, this.getIdentifier() + ".yml");
 
                 try {
                     ConfigurationProvider.getProvider(YamlConfiguration.class).save(
@@ -244,5 +244,23 @@ public final class MStaffAuthenticator extends MinedisExtension {
     @Override
     public void onDisable() {
         getLogger().info("All listeners are unloaded from MStaffAuthenticator");
+
+        String guildID = getConfiguration().getString("settings.commands.link.guild-id", "NOT_SET");
+
+        if (guildID.isEmpty() || guildID.equalsIgnoreCase("NOT_SET")) {
+            getLogger().info("Can't register link command because discord guild id was not set yet.");
+            return;
+        }
+
+        Guild guild = getJDA().getGuildById(guildID);
+
+        if (guild == null) {
+            getLogger().info("Discord GUILD was not found for link command.");
+            return;
+        }
+
+        commandList.forEach(command -> guild.deleteCommandById(command).queue());
+
+        commandList.clear();
     }
 }

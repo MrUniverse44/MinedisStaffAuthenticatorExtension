@@ -1,8 +1,6 @@
 package me.blueslime.minedis.extension.authenticator.listeners;
 
 import me.blueslime.minedis.extension.authenticator.MStaffAuthenticator;
-import me.blueslime.minedis.extension.authenticator.cache.CodeCache;
-import me.blueslime.minedis.extension.authenticator.cache.DiscordCache;
 import me.blueslime.minedis.extension.authenticator.utils.CodeGenerator;
 import me.blueslime.minedis.extension.authenticator.utils.EmbedSection;
 import me.blueslime.minedis.utils.player.PlayerTools;
@@ -65,11 +63,11 @@ public class DiscordCommandListener extends ListenerAdapter {
                     )
                 );
                 String code = CodeGenerator.generate(15);
-                main.getCache(CodeCache.class).set(
+                main.getCache("mstaff-mc-codes").set(
                     player.getUniqueId(),
                     code
                 );
-                main.getCache(DiscordCache.class).set(
+                main.getCache("mstaff-discord").set(
                     code,
                     event.getMember().getId()
                 );

@@ -2,12 +2,11 @@ package me.blueslime.minedis.extension.authenticator;
 
 import me.blueslime.minedis.api.MinedisAPI;
 import me.blueslime.minedis.api.extension.MinedisExtension;
-import me.blueslime.minedis.extension.authenticator.cache.CodeCache;
-import me.blueslime.minedis.extension.authenticator.cache.DiscordCache;
 import me.blueslime.minedis.extension.authenticator.listeners.DiscordCommandListener;
 import me.blueslime.minedis.extension.authenticator.listeners.PlayerChatListener;
 import me.blueslime.minedis.extension.authenticator.listeners.PlayerJoinListener;
 import me.blueslime.minedis.extension.authenticator.listeners.PlayerQuitListener;
+import me.blueslime.minedis.modules.cache.Cache;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.Commands;
@@ -18,11 +17,13 @@ import net.md_5.bungee.config.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.UUID;
 
 public final class MStaffAuthenticator extends MinedisExtension {
     private final ArrayList<String> commandList = new ArrayList<>();
-    private final DiscordCache discordCache = new DiscordCache();
-    private final CodeCache codes = new CodeCache();
+    private final Cache<String, String> discordCache = new Cache<>(new HashMap<>());
+    private final Cache<UUID, String> codes = new Cache<>(new HashMap<>());
 
     @Override
     public String getIdentifier() {
@@ -41,8 +42,8 @@ public final class MStaffAuthenticator extends MinedisExtension {
     public void onEnabled() {
         getLogger().info("Loading Staff Authenticator extension v1.0.0");
 
-        registerCache(codes);
-        registerCache(discordCache);
+        registerCache("mstaff-mc-codes", codes);
+        registerCache("mstaff-discord", discordCache);
 
         if (!getConfiguration().contains("settings.auth")) {
             getConfiguration().set("settings.auth.prevent-join-without-linked-account", true);

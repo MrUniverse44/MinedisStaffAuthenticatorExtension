@@ -1,7 +1,6 @@
 package me.blueslime.minedis.extension.authenticator.listeners;
 
 import me.blueslime.minedis.extension.authenticator.MStaffAuthenticator;
-import me.blueslime.minedis.extension.authenticator.cache.CodeCache;
 import me.blueslime.minedis.extension.authenticator.utils.EmbedSection;
 import me.blueslime.minedis.utils.text.TextReplacer;
 import net.dv8tion.jda.api.entities.Guild;
@@ -62,8 +61,8 @@ public class PlayerQuitListener implements Listener {
             }
         }
 
-        if (extension.getCache(CodeCache.class).contains(event.getPlayer().getUniqueId())) {
-            extension.getCache(CodeCache.class).remove(event.getPlayer().getUniqueId());
+        if (extension.getCache("mstaff-mc-codes").contains(event.getPlayer().getUniqueId())) {
+            extension.getCache("mstaff-mc-codes").remove(event.getPlayer().getUniqueId());
         }
     }
 }

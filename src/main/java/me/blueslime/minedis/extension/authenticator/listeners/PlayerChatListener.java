@@ -1,8 +1,6 @@
 package me.blueslime.minedis.extension.authenticator.listeners;
 
 import me.blueslime.minedis.extension.authenticator.MStaffAuthenticator;
-import me.blueslime.minedis.extension.authenticator.cache.CodeCache;
-import me.blueslime.minedis.extension.authenticator.cache.DiscordCache;
 import me.blueslime.minedis.extension.authenticator.utils.EmbedSection;
 import me.blueslime.minedis.utils.player.PlayerTools;
 import me.blueslime.minedis.utils.text.TextReplacer;
@@ -34,7 +32,7 @@ public class PlayerChatListener implements Listener {
         ProxiedPlayer player = (ProxiedPlayer) event.getSender();
 
         if (!event.isCommand()) {
-            if (main.getCache(CodeCache.class).contains(player.getUniqueId())) {
+            if (main.getCache("mstaff-mc-codes").contains(player.getUniqueId())) {
                 event.setCancelled(true);
                 return;
             }
@@ -44,20 +42,20 @@ public class PlayerChatListener implements Listener {
         }
 
         if (event.isCommand()) {
-            if (main.getCache(CodeCache.class).contains(player.getUniqueId())) {
+            if (main.getCache("mstaff-mc-codes").contains(player.getUniqueId())) {
 
                 event.setCancelled(true);
 
                 if (event.getMessage().contains(command + " ")) {
 
-                    String code = main.getCache(CodeCache.class).get(player.getUniqueId());
+                    String code = (String)main.getCache("mstaff-mc-codes").get(player.getUniqueId());
 
                     if (event.getMessage().contains(code)) {
 
-                        main.getCache(CodeCache.class).remove(player.getUniqueId());
+                        main.getCache("mstaff-mc-codes").remove(player.getUniqueId());
 
-                        if (main.getCache(DiscordCache.class).contains(code)) {
-                            String user = main.getCache(DiscordCache.class).get(code);
+                        if (main.getCache("mstaff-discord").contains(code)) {
+                            String user = (String)main.getCache("mstaff-discord").get(code);
 
                             main.getMinecraftStorage().set(
                                 "storage.id." + player.getName(),
@@ -67,7 +65,7 @@ public class PlayerChatListener implements Listener {
                                 "storage.id." + user, player.getName()
                             );
 
-                            main.getCache(DiscordCache.class).remove(code);
+                            main.getCache("mstaff-discord").remove(code);
 
                             player.sendMessage(
                                 TextUtilities.component(
@@ -156,7 +154,7 @@ public class PlayerChatListener implements Listener {
             return;
         }
 
-        if (main.getCache(CodeCache.class).contains(player.getUniqueId())) {
+        if (main.getCache("mstaff-mc-codes").contains(player.getUniqueId())) {
             if (main.getConfiguration().getBoolean("settings.logs.fail-login-attempt-log.enabled", true)) {
                 Configuration settings = main.getConfiguration();
 

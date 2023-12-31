@@ -1,8 +1,6 @@
 package me.blueslime.minedis.extension.authenticator.listeners;
 
 import me.blueslime.minedis.extension.authenticator.MStaffAuthenticator;
-import me.blueslime.minedis.extension.authenticator.cache.CodeCache;
-import me.blueslime.minedis.extension.authenticator.cache.DiscordCache;
 import me.blueslime.minedis.extension.authenticator.utils.CodeGenerator;
 import me.blueslime.minedis.extension.authenticator.utils.EmbedSection;
 import me.blueslime.minedis.utils.player.PlayerTools;
@@ -57,7 +55,7 @@ public class PlayerJoinListener implements Listener {
                             10
                         );
 
-                        extension.getCache(CodeCache.class).set(
+                        extension.getCache("mstaff-mc-codes").set(
                             player.getUniqueId(),
                             code
                         );
@@ -142,7 +140,7 @@ public class PlayerJoinListener implements Listener {
                             10
                     );
 
-                    extension.getCache(CodeCache.class).set(
+                    extension.getCache("mstaff-mc-codes").set(
                             player.getUniqueId(),
                             code
                     );
@@ -159,9 +157,9 @@ public class PlayerJoinListener implements Listener {
                                         cancel(player.getUniqueId());
                                         return;
                                     }
-                                    if (extension.getCache(CodeCache.class).contains(player.getUniqueId())) {
-                                        String code = extension.getCache(CodeCache.class).get(player.getUniqueId());
-                                        if (extension.getCache(DiscordCache.class).contains(code)) {
+                                    if (extension.getCache("mstaff-mc-codes").contains(player.getUniqueId())) {
+                                        String code = (String)extension.getCache("mstaff-mc-codes").get(player.getUniqueId());
+                                        if (extension.getCache("mstaff-discord").contains(code)) {
                                             player.sendMessage(
                                                     ChatMessageType.ACTION_BAR,
                                                     TextUtilities.component(

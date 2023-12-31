@@ -44,10 +44,6 @@ public final class MStaffAuthenticator extends MinedisExtension {
         registerCache(codes);
         registerCache(discordCache);
 
-        if (!getConfiguration().contains("settings.auth.prevent-join-without-linked-account-timer")) {
-            getConfiguration().set("settings.auth.prevent-join-without-linked-account-timer", 30);
-        }
-
         if (!getConfiguration().contains("settings.auth")) {
             getConfiguration().set("settings.auth.prevent-join-without-linked-account", true);
             getConfiguration().set("settings.auth.address-not-found", "Not yet");
@@ -77,6 +73,10 @@ public final class MStaffAuthenticator extends MinedisExtension {
                 getConfiguration().set(embedPath + "fields.address.value", "Old: %ip_last%, Current: %ip_current%");
                 getConfiguration().set(embedPath + "footer", "mc.spigotmc.org");
             }
+        }
+
+        if (!getConfiguration().contains("settings.auth.prevent-join-without-linked-account-timer")) {
+            getConfiguration().set("settings.auth.prevent-join-without-linked-account-timer", 30);
         }
 
         String embedPath = "settings.logs.join-log.";
@@ -116,6 +116,7 @@ public final class MStaffAuthenticator extends MinedisExtension {
 
         embedPath = "settings.commands.link.";
         if (!getConfiguration().contains(embedPath + "command")) {
+            getConfiguration().set(embedPath + "guild-id", "NOT_SET");
             getConfiguration().set(embedPath + "command", "link");
             getConfiguration().set(embedPath + "command-description", "Link your MC account with your Discord account");
             getConfiguration().set(embedPath + "player-is-not-online", "This player is not online.");
@@ -123,7 +124,6 @@ public final class MStaffAuthenticator extends MinedisExtension {
             getConfiguration().set(embedPath + "account-linked", "&aNow your minecraft account has been linked to your discord account ;)");
             getConfiguration().set(embedPath + "player-message", "&aDiscord account %discord% is trying to link your username to his discord, please use the command on your discord account to confirm.");
             getConfiguration().set(embedPath + "already", "Your account is already linked to minecraft account.");
-            getConfiguration().set(embedPath + "guild-id", "NOT_SET");
             getConfiguration().set(embedPath + "title", "Link Account - StaffAuthenticator Extension");
             getConfiguration().set(embedPath + "description", "You are trying to link your discord account with minecraft account: **%nick%**, please use the next command in-game: **%command% %code%**");
             getConfiguration().set(embedPath + "color", "BLUE");

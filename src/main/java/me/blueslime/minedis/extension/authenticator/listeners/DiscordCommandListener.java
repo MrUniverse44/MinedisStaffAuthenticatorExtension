@@ -27,7 +27,7 @@ public class DiscordCommandListener extends ListenerAdapter {
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         if (event.getName().equals(main.getConfiguration().getString("settings.commands.link.command", "link"))) {
             event.deferReply(true).queue();
-            OptionMapping option = event.getOption("Username");
+            OptionMapping option = event.getOption("username");
             if (option != null) {
                 String user = option.getAsString();
                 ProxiedPlayer player = main.getProxy().getPlayer(user);

@@ -33,6 +33,16 @@ public class PlayerChatListener implements Listener {
 
         ProxiedPlayer player = (ProxiedPlayer) event.getSender();
 
+        if (!event.isCommand()) {
+            if (main.getCache(CodeCache.class).contains(player.getUniqueId())) {
+                event.setCancelled(true);
+                return;
+            }
+            if (event.getMessage().contains(command + " ")) {
+                return;
+            }
+        }
+
         if (event.isCommand()) {
             if (main.getCache(CodeCache.class).contains(player.getUniqueId())) {
 

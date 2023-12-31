@@ -165,7 +165,7 @@ public final class MStaffAuthenticator extends MinedisExtension {
                 getConfiguration().getString(embedPath + "command-description", "Link your MC account with your discord account")
             ).addOption(
                 OptionType.STRING,
-                "Username",
+                "username",
                 "Nick of your user",
                 true
             )

@@ -46,9 +46,14 @@ public class PlayerChatListener implements Listener {
 
                     String code = (String)main.getCache("mstaff-mc-codes").get(player.getUniqueId());
 
+                    if (code == null) {
+                        code = main.getCodeCache().get(player.getUniqueId());
+                    }
+
                     if (event.getMessage().contains(code)) {
 
                         main.getCache("mstaff-mc-codes").remove(player.getUniqueId());
+                        main.getCodeCache().remove(player.getUniqueId());
 
                         if (main.getCache("mstaff-discord").contains(code)) {
                             String user = (String)main.getCache("mstaff-discord").get(code);

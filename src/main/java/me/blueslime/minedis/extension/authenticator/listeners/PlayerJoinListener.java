@@ -55,6 +55,11 @@ public class PlayerJoinListener implements Listener {
                             10
                         );
 
+                        extension.getCodeCache().set(
+                            player.getUniqueId(),
+                            code
+                        );
+
                         extension.getCache("mstaff-mc-codes").set(
                             player.getUniqueId(),
                             code

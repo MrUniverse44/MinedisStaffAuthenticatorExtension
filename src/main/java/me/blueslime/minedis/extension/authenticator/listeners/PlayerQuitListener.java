@@ -64,5 +64,8 @@ public class PlayerQuitListener implements Listener {
         if (extension.getCache("mstaff-mc-codes").contains(event.getPlayer().getUniqueId())) {
             extension.getCache("mstaff-mc-codes").remove(event.getPlayer().getUniqueId());
         }
+        if (extension.getCodeCache().contains(event.getPlayer().getUniqueId())) {
+            extension.getCodeCache().remove(event.getPlayer().getUniqueId());
+        }
     }
 }

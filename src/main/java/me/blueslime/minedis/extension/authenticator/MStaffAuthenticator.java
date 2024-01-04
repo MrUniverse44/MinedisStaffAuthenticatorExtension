@@ -234,6 +234,14 @@ public final class MStaffAuthenticator extends MinedisExtension {
         }
     }
 
+    public Cache<String, String> getDiscordCache() {
+        return discordCache;
+    }
+
+    public Cache<UUID, String> getCodeCache() {
+        return codes;
+    }
+
     public Configuration getMinecraftStorage() {
         return minecraftStorage;
     }

@@ -16,12 +16,10 @@ import net.md_5.bungee.config.YamlConfiguration;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.UUID;
 
 public final class MStaffAuthenticator extends MinedisExtension {
-    private final ArrayList<String> commandList = new ArrayList<>();
     private final Cache<String, String> discordCache = new Cache<>(new HashMap<>());
     private final Cache<UUID, String> codes = new Cache<>(new HashMap<>());
 
@@ -40,7 +38,7 @@ public final class MStaffAuthenticator extends MinedisExtension {
 
     @Override
     public void onEnabled() {
-        getLogger().info("Loading Staff Authenticator extension v1.0.0");
+        getLogger().info("Loading Staff Authenticator extension v1.0.1");
 
         registerCache("mstaff-mc-codes", codes);
         registerCache("mstaff-discord", discordCache);
@@ -160,7 +158,8 @@ public final class MStaffAuthenticator extends MinedisExtension {
             return;
         }
 
-        guild.upsertCommand(
+        registerCommand(
+            guild,
             Commands.slash(
                 getConfiguration().getString(embedPath + "command", "link"),
                 getConfiguration().getString(embedPath + "command-description", "Link your MC account with your discord account")
@@ -170,7 +169,7 @@ public final class MStaffAuthenticator extends MinedisExtension {
                 "Nick of your user",
                 true
             )
-        ).queue(cmd -> commandList.add(cmd.getId()));
+        );
     }
 
     public void saveDatabase() {
@@ -253,23 +252,5 @@ public final class MStaffAuthenticator extends MinedisExtension {
     @Override
     public void onDisable() {
         getLogger().info("All listeners are unloaded from MStaffAuthenticator");
-
-        String guildID = getConfiguration().getString("settings.commands.link.guild-id", "NOT_SET");
-
-        if (guildID.isEmpty() || guildID.equalsIgnoreCase("NOT_SET")) {
-            getLogger().info("Can't register link command because discord guild id was not set yet.");
-            return;
-        }
-
-        Guild guild = getJDA().getGuildById(guildID);
-
-        if (guild == null) {
-            getLogger().info("Discord GUILD was not found for link command.");
-            return;
-        }
-
-        commandList.forEach(command -> guild.deleteCommandById(command).queue());
-
-        commandList.clear();
     }
 }

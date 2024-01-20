@@ -6,7 +6,7 @@
 
     <groupId>me.blueslime</groupId>
     <artifactId>MStaffAuthenticator</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>jar</packaging>
 
     <name>MStaffAuthenticator</name>
@@ -78,7 +78,7 @@
         <dependency>
             <groupId>com.github.MrUniverse44</groupId>
             <artifactId>Minedis</artifactId>
-            <version>1.0.0-RC-3</version>
+            <version>1.0.1.0</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

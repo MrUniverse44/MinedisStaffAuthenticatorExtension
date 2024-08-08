@@ -22,6 +22,7 @@ import java.util.UUID;
 public final class MStaffAuthenticator extends MinedisExtension {
     private final Cache<String, String> discordCache = new Cache<>(new HashMap<>());
     private final Cache<UUID, String> codes = new Cache<>(new HashMap<>());
+    public static final String MESSAGE_CHANNEL = "mdsa:staffstatus";
 
     @Override
     public String getIdentifier() {
@@ -35,10 +36,13 @@ public final class MStaffAuthenticator extends MinedisExtension {
 
     private Configuration minecraftStorage;
     private Configuration discordStorage;
+    private Configuration staffStoredData;
 
     @Override
     public void onEnabled() {
         getLogger().info("Loading Staff Authenticator extension v1.0.1");
+
+        getProxy().registerChannel(MESSAGE_CHANNEL);
 
         registerCache("mstaff-mc-codes", codes);
         registerCache("mstaff-discord", discordCache);
@@ -181,13 +185,17 @@ public final class MStaffAuthenticator extends MinedisExtension {
             if (load) {
                 File file1 = new File(folder, "minecraft-storage.yml");
                 File file2 = new File(folder, "discord-storage.yml");
+                File file3 = new File(folder, "stored-data.yml");
 
                 try {
                     ConfigurationProvider.getProvider(YamlConfiguration.class).save(
-                            minecraftStorage, file1
+                        staffStoredData, file3
                     );
                     ConfigurationProvider.getProvider(YamlConfiguration.class).save(
-                            discordStorage, file2
+                        minecraftStorage, file1
+                    );
+                    ConfigurationProvider.getProvider(YamlConfiguration.class).save(
+                        discordStorage, file2
                     );
                 } catch (IOException ignored) {}
             }
@@ -199,6 +207,7 @@ public final class MStaffAuthenticator extends MinedisExtension {
         if (api == null) {
             minecraftStorage = new Configuration();
             discordStorage = new Configuration();
+            staffStoredData = new Configuration();
         } else {
             File extensions = api.getDirectoryFile("extensions");
             File folder = new File(extensions, getIdentifier());
@@ -206,7 +215,7 @@ public final class MStaffAuthenticator extends MinedisExtension {
             if (load) {
                 File file1 = new File(folder, "minecraft-storage.yml");
                 File file2 = new File(folder, "discord-storage.yml");
-
+                File file3 = new File(folder, "stored-data.yml");
                 try {
                     if (!file1.exists()) {
                         if (!file1.createNewFile()) {
@@ -218,17 +227,25 @@ public final class MStaffAuthenticator extends MinedisExtension {
                             discordStorage = new Configuration();
                         }
                     }
-                    if (file1.exists() && file2.exists()) {
+                    if (!file3.exists()) {
+                        if (!file3.createNewFile()) {
+                            staffStoredData = new Configuration();
+                        }
+                    }
+                    if (file1.exists() && file2.exists() && file3.exists()) {
+                        staffStoredData = ConfigurationProvider.getProvider(YamlConfiguration.class).load(file3);
                         minecraftStorage = ConfigurationProvider.getProvider(YamlConfiguration.class).load(file1);
                         discordStorage = ConfigurationProvider.getProvider(YamlConfiguration.class).load(file2);
                     }
                 } catch (Exception ignored) {
                     minecraftStorage = new Configuration();
                     discordStorage = new Configuration();
+                    staffStoredData = new Configuration();
                 }
             } else {
                 minecraftStorage = new Configuration();
                 discordStorage = new Configuration();
+                staffStoredData = new Configuration();
             }
         }
     }
@@ -245,12 +262,17 @@ public final class MStaffAuthenticator extends MinedisExtension {
         return minecraftStorage;
     }
 
+    public Configuration getStaffStoredData() {
+        return staffStoredData;
+    }
+
     public Configuration getDiscordStorage() {
         return discordStorage;
     }
 
     @Override
     public void onDisable() {
+        getProxy().unregisterChannel(MESSAGE_CHANNEL);
         getLogger().info("All listeners are unloaded from MStaffAuthenticator");
     }
 }

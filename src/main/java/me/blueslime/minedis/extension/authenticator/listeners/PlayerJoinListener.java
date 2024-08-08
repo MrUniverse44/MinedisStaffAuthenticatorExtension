@@ -17,6 +17,8 @@ import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.event.EventHandler;
 import net.md_5.bungee.event.EventPriority;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -46,13 +48,8 @@ public class PlayerJoinListener implements Listener {
 
                     if (minecraftData == null || !minecraftData.toString().equalsIgnoreCase(PlayerTools.getIP(player))) {
 
-                        if (settings.getString("settings.auth.guild", "NOT_SET").equalsIgnoreCase("NOT_SET")) {
-                            extension.getLogger().info("Warning! GUILD is not set, the extension is not generating codes...");
-                            return;
-                        }
-
                         String code = CodeGenerator.generate(
-                            10
+                            20
                         );
 
                         extension.getCodeCache().set(
@@ -65,6 +62,17 @@ public class PlayerJoinListener implements Listener {
                             code
                         );
 
+                        if (settings.getString("settings.auth.guild", "NOT_SET").equalsIgnoreCase("NOT_SET")) {
+                            extension.getLogger().info("Warning! GUILD is not set, the extension is not generating codes...");
+                            return;
+                        }
+
+                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                        try (DataOutputStream out = new DataOutputStream(stream)) {
+                            out.writeUTF(player.getUniqueId().toString() + ":pending");
+                            player.getServer().sendData(MStaffAuthenticator.MESSAGE_CHANNEL, stream.toByteArray());
+                        } catch (Exception ignored) { }
+
                         Guild guild = extension.getJDA().getGuildById(
                             settings.getString("settings.auth.guild", "0")
                         );
@@ -74,52 +82,56 @@ public class PlayerJoinListener implements Listener {
                             return;
                         }
 
-                        guild.retrieveMemberById(
+                        extension.getJDA().retrieveUserById(
                             minecraft.getString("storage.id." + player.getName(), "0")
                         ).queue(
-                            member -> {
-                                if (member != null) {
-                                    member.getUser().openPrivateChannel().queue(
-                                        channel -> {
-                                            if (channel != null && channel.canTalk()) {
-                                                TextReplacer replacer = TextReplacer.builder()
-                                                    .replace("%ip_current%", PlayerTools.getIP(player))
-                                                    .replace("%ip_last%", (minecraftData == null) ? settings.getString("settings.auth.address-not-found", "Not yet") : minecraftData.toString())
-                                                    .replace("%command%", "/" + settings.getString("settings.auth.command", "staffcode"))
-                                                    .replace("%code%", code)
-                                                    .replace("%nick%", player.getName())
-                                                    .replace("%name%", player.getName());
+                            user -> {
+                                if (user == null) {
+                                    extension.getLogger().info("[STAFF AUTHENTICATOR] Can't find this user");
+                                    return;
+                                }
 
-                                                if (settings.getBoolean("settings.auth.formats.with-embed.enabled")) {
-                                                    channel.sendMessageEmbeds(
-                                                        new EmbedSection(
-                                                            settings.getSection("settings.auth.formats.with-embed")
-                                                        ).build(
-                                                            replacer
-                                                        )
-                                                    ).queue();
-                                                } else {
-                                                    channel.sendMessage(
-                                                        replacer.apply(
-                                                            settings.getString(
-                                                                "settings.auth.formats.without-embed.message",
-                                                                "(Old Address: **%ip_last%** New Address: **%ip_current%**) %nick%, use this command in-game: **%command% %code%**"
-                                                            )
-                                                        )
-                                                    ).queue();
-                                                }
+                                user.openPrivateChannel().queue(
+                                    userChannel -> {
+                                        if (userChannel != null && userChannel.canTalk()) {
+                                            TextReplacer replacer = TextReplacer.builder()
+                                                .replace("%ip_current%", PlayerTools.getIP(player))
+                                                .replace("%ip_last%", (minecraftData == null) ? settings.getString("settings.auth.address-not-found", "Not yet") : minecraftData.toString())
+                                                .replace("%command%", "/" + settings.getString("settings.auth.command", "staffcode"))
+                                                .replace("%code%", code)
+                                                .replace("%nick%", player.getName())
+                                                .replace("%name%", player.getName());
+
+                                    if (settings.getBoolean("settings.auth.formats.with-embed.enabled", false)) {
+                                            userChannel.sendMessageEmbeds(
+                                                new EmbedSection(
+                                                    settings.getSection("settings.auth.formats.with-embed")
+                                                ).build(
+                                                    replacer
+                                                )
+                                                ).queue();
                                             } else {
-                                                player.disconnect(
-                                                    TextUtilities.component(
+                                                userChannel.sendMessage(
+                                                    replacer.apply(
                                                         settings.getString(
-                                                            "settings.auth.md-disabled", "&cThis current discord user linked to this account has the MD disabled."
+                                                            "settings.auth.formats.without-embed.message",
+                                                            "(Old Address: **%ip_last%** New Address: **%ip_current%**) %nick%, use this command in-game: **%command% %code%**"
                                                         )
                                                     )
-                                                );
+                                                ).queue();
                                             }
+                                        } else {
+                                            extension.getLogger().info("[STAFF AUTHENTICATOR] User: " + minecraft.getString("storage.id." + player.getName(), "0") + " has disabled MD.");
+                                            player.disconnect(
+                                                TextUtilities.component(
+                                                    settings.getString(
+                                                        "settings.auth.md-disabled", "&cThis current discord user linked to this account has the MD disabled."
+                                                    )
+                                                )
+                                            );
                                         }
-                                    );
-                                }
+                                    }
+                                );
                             }
                         );
                     } else {
@@ -142,13 +154,19 @@ public class PlayerJoinListener implements Listener {
             } else {
                 if (settings.getBoolean("settings.auth.prevent-join-without-linked-account", true)) {
                     String code = CodeGenerator.generate(
-                            10
+                        25
                     );
 
                     extension.getCache("mstaff-mc-codes").set(
-                            player.getUniqueId(),
-                            code
+                        player.getUniqueId(),
+                        code
                     );
+
+                    ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                    try (DataOutputStream out = new DataOutputStream(stream)) {
+                        out.writeUTF(player.getUniqueId().toString() + ":pending");
+                        player.getServer().sendData(MStaffAuthenticator.MESSAGE_CHANNEL, stream.toByteArray());
+                    } catch (Exception ignored) { }
 
                     taskMap.put(player.getUniqueId(), extension.getProxy().getScheduler().schedule(
                             extension.getPlugin(),

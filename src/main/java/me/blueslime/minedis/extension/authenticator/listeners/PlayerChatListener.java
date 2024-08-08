@@ -2,6 +2,7 @@ package me.blueslime.minedis.extension.authenticator.listeners;
 
 import me.blueslime.minedis.extension.authenticator.MStaffAuthenticator;
 import me.blueslime.minedis.extension.authenticator.utils.EmbedSection;
+import me.blueslime.minedis.extension.authenticator.utils.StringUtil;
 import me.blueslime.minedis.utils.player.PlayerTools;
 import me.blueslime.minedis.utils.text.TextReplacer;
 import me.blueslime.minedis.utils.text.TextUtilities;
@@ -12,6 +13,10 @@ import net.md_5.bungee.api.event.ChatEvent;
 import net.md_5.bungee.api.plugin.Listener;
 import net.md_5.bungee.config.Configuration;
 import net.md_5.bungee.event.EventHandler;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.util.List;
 
 public class PlayerChatListener implements Listener {
     private final MStaffAuthenticator main;
@@ -55,6 +60,48 @@ public class PlayerChatListener implements Listener {
                         main.getCache("mstaff-mc-codes").remove(player.getUniqueId());
                         main.getCodeCache().remove(player.getUniqueId());
 
+                        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                        try (DataOutputStream out = new DataOutputStream(stream)) {
+                            out.writeUTF(player.getUniqueId().toString() + ":completed");
+                            player.getServer().sendData(MStaffAuthenticator.MESSAGE_CHANNEL, stream.toByteArray());
+                        } catch (Exception ignored) { }
+
+                        Configuration settings = main.getConfiguration();
+
+                        String channelID = settings.getString("settings.logs.fail-login-attempt-log.channel-id", "NOT_SET");
+                        String guildID = settings.getString("settings.logs.fail-login-attempt-log.guild-id", "NOT_SET");
+
+                        Guild announce = channelID.equalsIgnoreCase("NOT_SET") || guildID.equalsIgnoreCase("NOT_SET") ? null : main.getJDA().getGuildById(guildID);
+
+                        if (announce == null) {
+                            main.getLogger().info("Guild-ID was not found for chat logs: " + guildID);
+                        }
+
+                        TextChannel textChannel = announce != null ? announce.getTextChannelById(
+                            channelID
+                        ) : null;
+
+                        if (textChannel == null) {
+                            main.getLogger().info("Channel for chat logs was not found: " + channelID);
+                        }
+
+                        if (textChannel != null) {
+                            textChannel.sendMessageEmbeds(
+                                new EmbedSection(
+                                    settings.getSection("settings.logs.login-event-log")
+                                ).build(
+                                    TextReplacer.builder()
+                                        .replace("%nick%", player.getName())
+                                        .replace("%command%", event.getMessage())
+                                        .replace("%name%", player.getName())
+                                        .replace("%uuid%", player.getUniqueId().toString())
+                                        .replace("%ip%", PlayerTools.getIP(player))
+                                        .replace("%id%", player.getUniqueId().toString().replace("-", ""))
+                                )
+                            ).queue();
+                        }
+
+
                         if (main.getCache("mstaff-discord").contains(code)) {
                             String user = (String)main.getCache("mstaff-discord").get(code);
 
@@ -69,40 +116,81 @@ public class PlayerChatListener implements Listener {
                             main.getCache("mstaff-discord").remove(code);
 
                             player.sendMessage(
-                                    TextUtilities.component(
-                                            main.getConfiguration().getString(
-                                                    "settings.commands.link.account-linked",
-                                                    "&aNow your minecraft account has been linked to your discord account ;)"
-                                            )
+                                TextUtilities.component(
+                                    main.getConfiguration().getString(
+                                        "settings.commands.link.account-linked",
+                                        "&aNow your minecraft account has been linked to your discord account ;)"
                                     )
+                                )
                             );
                         }
 
                         player.sendMessage(
-                                TextUtilities.component(
-                                        main.getConfiguration().getString(
-                                                "settings.auth.welcome",
-                                                "&aWelcome!&f Your IP Address has been registered."
-                                        )
+                            TextUtilities.component(
+                                main.getConfiguration().getString(
+                                    "settings.auth.welcome",
+                                    "&aWelcome!&f Your IP Address has been registered."
                                 )
+                            )
                         );
 
                         String IP = PlayerTools.getIP(player);
 
                         main.getMinecraftStorage().set("storage.ip." + player.getName(), IP);
 
+                        List<String> ipList = StringUtil.toStringList(main.getStaffStoredData().getList(player.getName() + ".success"));
+
+                        if (!ipList.contains(IP)) {
+                            ipList.add(IP);
+                            main.getStaffStoredData().set(player.getName() + ".success", ipList);
+                        }
+
                         main.saveDatabase();
 
                         main.reloadDatabase();
                         return;
+                    } else {
+                        Configuration settings = main.getConfiguration();
+
+                        String channelID = settings.getString("settings.logs.fail-login-attempt-log.channel-id", "NOT_SET");
+                        String guildID = settings.getString("settings.logs.fail-login-attempt-log.guild-id", "NOT_SET");
+
+                        Guild announce = channelID.equalsIgnoreCase("NOT_SET") || guildID.equalsIgnoreCase("NOT_SET") ? null : main.getJDA().getGuildById(guildID);
+
+                        if (announce == null) {
+                            main.getLogger().info("Guild-ID was not found for chat logs: " + guildID);
+                        }
+
+                        TextChannel textChannel = announce != null ? announce.getTextChannelById(
+                            channelID
+                        ) : null;
+
+                        if (textChannel == null) {
+                            main.getLogger().info("Channel for chat logs was not found: " + channelID);
+                        }
+
+                        if (textChannel != null) {
+                            textChannel.sendMessageEmbeds(
+                                new EmbedSection(
+                                    settings.getSection("settings.logs.fail-login-attempt-log")
+                                ).build(
+                                    TextReplacer.builder()
+                                        .replace("%nick%", player.getName())
+                                        .replace("%command%", "/" + event.getMessage())
+                                        .replace("%name%", player.getName())
+                                        .replace("%uuid%", player.getUniqueId().toString())
+                                        .replace("%id%", player.getUniqueId().toString().replace("-", ""))
+                                )
+                            ).queue();
+                        }
                     }
                 }
                 player.sendMessage(
-                        TextUtilities.component(
-                                main.getConfiguration().getString(
-                                        "settings.auth.login-msg", "&6Staff > &eYou are not logged yet."
-                                )
+                    TextUtilities.component(
+                        main.getConfiguration().getString(
+                            "settings.auth.login-msg", "&6Staff > &eYou are not logged yet."
                         )
+                    )
                 );
                 if (main.getConfiguration().getBoolean("settings.logs.fail-login-attempt-log.enabled", true)) {
                     Configuration settings = main.getConfiguration();
@@ -110,45 +198,94 @@ public class PlayerChatListener implements Listener {
                     String channelID = settings.getString("settings.logs.fail-login-attempt-log.channel-id", "NOT_SET");
                     String guildID = settings.getString("settings.logs.fail-login-attempt-log.guild-id", "NOT_SET");
 
-                    if (channelID.equalsIgnoreCase("NOT_SET") || guildID.equalsIgnoreCase("NOT_SET")) {
-                        return;
-                    }
-
-                    Guild announce = main.getJDA().getGuildById(guildID);
+                    Guild announce = channelID.equalsIgnoreCase("NOT_SET") || guildID.equalsIgnoreCase("NOT_SET") ? null : main.getJDA().getGuildById(guildID);
 
                     if (announce == null) {
-                        main.getLogger().info("Guild-ID was not found for join logs: " + guildID);
-                        return;
+                        main.getLogger().info("Guild-ID was not found for chat logs: " + guildID);
                     }
 
-                    TextChannel textChannel = announce.getTextChannelById(
-                            channelID
-                    );
+                    TextChannel textChannel = announce != null ? announce.getTextChannelById(
+                        channelID
+                    ) : null;
 
                     if (textChannel == null) {
-                        main.getLogger().info("Channel for join logs was not found: " + channelID);
-                        return;
+                        main.getLogger().info("Channel for chat logs was not found: " + channelID);
                     }
 
                     if (player.isConnected()) {
-                        textChannel.sendMessageEmbeds(
-                            new EmbedSection(
+
+                        String IP = PlayerTools.getIP(player);
+
+                        List<String> ipList = StringUtil.toStringList(main.getStaffStoredData().getList(player.getName() + ".failed"));
+
+                        if (!ipList.contains(IP)) {
+                            ipList.add(IP);
+                            main.getStaffStoredData().set(player.getName() + ".failed", ipList);
+                        }
+
+                        main.saveDatabase();
+                        main.reloadDatabase();
+
+                        if (textChannel != null) {
+                            textChannel.sendMessageEmbeds(
+                                new EmbedSection(
                                     settings.getSection("settings.logs.fail-login-attempt-log")
-                            ).build(
-                                TextReplacer.builder()
-                                    .replace("%nick%", player.getName())
-                                    .replace("%command%", "/" + event.getMessage())
-                                    .replace("%name%", player.getName())
-                                    .replace("%uuid%", player.getUniqueId().toString())
-                                    .replace("%id%", player.getUniqueId().toString().replace("-", ""))
-                            )
-                        ).queue();
+                                ).build(
+                                    TextReplacer.builder()
+                                        .replace("%nick%", player.getName())
+                                        .replace("%command%", "/" + event.getMessage())
+                                        .replace("%name%", player.getName())
+                                        .replace("%uuid%", player.getUniqueId().toString())
+                                        .replace("%id%", player.getUniqueId().toString().replace("-", ""))
+                                )
+                            ).queue();
+                        }
                     }
                 }
             }
             return;
         }
 
+        if (player.hasPermission(main.getConfiguration().getString("settings.auth.permission", "staffauth.need"))) {
+            Configuration settings = main.getConfiguration();
+
+            String channelID = settings.getString("settings.logs.fail-login-attempt-log.channel-id", "NOT_SET");
+            String guildID = settings.getString("settings.logs.fail-login-attempt-log.guild-id", "NOT_SET");
+
+            if (channelID.equalsIgnoreCase("NOT_SET") || guildID.equalsIgnoreCase("NOT_SET")) {
+                return;
+            }
+
+            Guild announce = channelID.equalsIgnoreCase("NOT_SET") || guildID.equalsIgnoreCase("NOT_SET") ? null : main.getJDA().getGuildById(guildID);
+
+            if (announce == null) {
+                main.getLogger().info("Guild-ID was not found for chat logs: " + guildID);
+            }
+
+            TextChannel textChannel = announce != null ? announce.getTextChannelById(
+                channelID
+            ) : null;
+
+            if (textChannel == null) {
+                main.getLogger().info("Channel for chat logs was not found: " + channelID);
+            }
+
+            if (textChannel != null) {
+                textChannel.sendMessageEmbeds(
+                    new EmbedSection(
+                        settings.getSection("settings.logs.chat-use-log")
+                    ).build(
+                        TextReplacer.builder()
+                            .replace("%nick%", player.getName())
+                            .replace("%command%", event.getMessage())
+                            .replace("%name%", player.getName())
+                            .replace("%uuid%", player.getUniqueId().toString())
+                            .replace("%ip%", PlayerTools.getIP(player))
+                            .replace("%id%", player.getUniqueId().toString().replace("-", ""))
+                    )
+                ).queue();
+            }
+        }
         if (event.getMessage().contains(command + " ")) {
             event.setCancelled(true);
         }
